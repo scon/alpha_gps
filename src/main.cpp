@@ -30,19 +30,19 @@ const char* AutoConnectAPPW = "password";
 #include <Adafruit_GFX.h>
 
 // Mit TFT
-#include "SPI.h"
-#include "Adafruit_ILI9341.h"
-#define TFT_DC 2
-#define TFT_CS 16
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC); //, TFT_MOSI, TFT_CLK);
+//#include "SPI.h"
+//#include "Adafruit_ILI9341.h"
+//#define TFT_DC 2
+//#define TFT_CS 16
+//Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC); //, TFT_MOSI, TFT_CLK);
 
 // If using the breakout, change pins as desired
 //Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 // Mit OLED
-//#include <Adafruit_SSD1306.h>
-//#define OLED_RESET 4
-//Adafruit_SSD1306 tft(LED_BUILTIN);
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(LED_BUILTIN);
 
 // Config Messung
 const int MessInterval = 2000; // Zeit in ms zwischen den einzelnen gemittelten Messwerten
@@ -87,18 +87,6 @@ int  gpsIsUpdated=0, gpsIsValid=0, gpsIfTriggered=0, gpsAge=0, gpsSpeed=0; // De
 
 float SN1_value, SN2_value, SN3_value, Temp_value;      // globale ADC Variablen
 float SN1_AE_value,SN2_AE_value,SN3_AE_value;           // fuer Ausgabe am Display
-
-
-
-void color(String color){  // fuer schnellen Farbwechsel
-  if (color == "white") tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
-  if (color == "green") tft.setTextColor(ILI9341_GREEN, ILI9341_BLACK);
-  if (color == "yellow") tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
-  if (color == "red") tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
-  if (color == "blue") tft.setTextColor(ILI9341_BLUE, ILI9341_BLACK);
-}
-
-void linefeed(){tft.println("                       ");} // eine Leerzeile auf dem Display erzeugen
 
 float getUmrechnungsfaktor(){
   float Faktor;
@@ -236,63 +224,6 @@ void Upload(String Uploadstring){
 
 void updateDisplay(){
 
-    String whiteSpace = "    ";
-    //tft.fillScreen(ILI9341_BLACK); // clearscreen
-
-    tft.setCursor(0,0);
-
-    //Connection Status
-    color("yellow");
-    tft.println("Connection Status");
-    color("white");
-    tft.print("Uplink: ");
-    if(conState == 1 ){ color("green"); tft.println("Connected" + whiteSpace); color("white");}
-    else {color("red"); tft.println("Disconnected" + whiteSpace); color("white");}
-    linefeed();
-
-    // GPS-location
-    color("yellow");
-    tft.println("GPS-location");
-    color("white");
-    tft.print("Location: ");
-    if(gpsAge < 10000 && gpsIsValid==1){ color("green"); tft.println("fixed" + whiteSpace); color("white");}
-    else {color("red"); tft.println("not fixed" + whiteSpace); color("white");}
-
-    tft.print("lon: "); tft.println(longitude + whiteSpace);
-    tft.print("lat: "); tft.println(latitude + whiteSpace);
-    tft.print("#: "); tft.println(Geohash + whiteSpace);
-    tft.print("gpsIsUpdated: "); tft.println(gpsIsUpdated + whiteSpace);
-    tft.print("gpsIsValid: "); tft.println(gpsIsValid + whiteSpace);
-    tft.print("gpsAge: "); tft.println(gpsAge + whiteSpace);
-    tft.print("gpsIfTriggered: "); tft.println(gpsIfTriggered + whiteSpace);
-    tft.print("gpsSpeed: "); tft.println(gpsSpeed + whiteSpace);
-    linefeed();
-
-    // adc values
-    color("yellow");
-    tft.println("ADC-values");
-    color("white");
-    tft.print("adc0: "); tft.println(adc0 + whiteSpace);
-    tft.print("adc1: "); tft.println(adc1 + whiteSpace);
-    tft.print("adc2: "); tft.println(adc2 + whiteSpace);
-    tft.print("adc3: "); tft.println(adc3 + whiteSpace);
-    tft.print("adc0_AE: "); tft.println(adc0_AE + whiteSpace);
-    tft.print("adc1_AE: "); tft.println(adc1_AE + whiteSpace);
-    tft.print("adc2_AE: "); tft.println(adc2_AE + whiteSpace);
-    linefeed();
-
-    // Data String
-    color("yellow");
-    tft.println("Data String");
-    color("white");
-    tft.print("Data: "); tft.println(Daten + whiteSpace + whiteSpace);
-    linefeed();
-    // serverResponse
-    color("yellow");
-    tft.println("Server Response");
-    color("white");
-    tft.print("serverResponse: "); tft.println(serverResponse + whiteSpace);
-    linefeed();
 }
 void setup() {
   Serial.begin(9600);
@@ -308,25 +239,20 @@ void setup() {
 //  tft.setTextColor(WHITE);
 //  tft.setCursor(0,0);
 
- tft.begin();
- tft.fillScreen(ILI9341_BLACK);
- tft.setTextColor(ILI9341_WHITE); tft.setTextSize(1);
- tft.println("Starting wifimanager...");
+
 
   WiFiStart();
 
   //if you get here you have connected to the WiFi
 
-  tft.setTextColor(ILI9341_GREEN);
-  tft.println("Wifi Verbindung hergestellt");
-  tft.setTextColor(ILI9341_WHITE);
-  tft.print("IP:"); tft.println(WiFi.localIP());
+
+  display.println("Wifi Verbindung hergestellt");
+
+  display.print("IP:"); display.println(WiFi.localIP());
   delay(1000);
-  tft.print("Searching satellites");
+  display.print("Searching satellites");
 
   time = millis();
-
-  tft.fillScreen(ILI9341_BLACK);
 }
 
 void loop() {

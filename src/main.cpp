@@ -18,7 +18,9 @@ TinyGPSPlus gps;
 
 //GeoHash libs
 #include <arduino-geohash.h>
-GeoHash hasher(8);
+GeoHash hasher_coarse(7);
+GeoHash hasher_normal(8);
+GeoHash hasher_fine(9);
 
 // Wifi Config
 char MEASUREMENT_NAME[34] = "alphasense";
@@ -69,7 +71,7 @@ const char* InfluxDB_Database = "MESSCONTAINER";
 
 int conState = 0;
 //GPS Variablen
-String latitude, longitude, Geohash, Position,last_lat, last_lng;
+String latitude, longitude, Geohash_fine, Geohash_normal, Geohash_coarse, Position,last_lat, last_lng;
 
 
 // Initialisiert WiFiClient als "client"
@@ -301,8 +303,12 @@ void loop() {
       last_lat = latitude;
       last_lng = longitude;
 
-      Geohash = hasher.encode(gps.location.lat(), gps.location.lng());
-      Position = "geohash="+ Geohash + " lat=" + latitude + ",lng=" + longitude;
+      Geohash_fine = hasher_fine.encode(gps.location.lat(), gps.location.lng());
+      Geohash_normal = hasher_fine.encode(gps.location.lat(), gps.location.lng());
+      Geohash_coarse = hasher_coarse.encode(gps.location.lat(), gps.location.lng());
+
+
+      Position = "geohash_fine="+ Geohash_fine + "geohash_normal="+ Geohash_normal + "Geohash_coarse="+ Geohash_coarse + " lat=" + latitude + ",lng=" + longitude;
     }
   }
 

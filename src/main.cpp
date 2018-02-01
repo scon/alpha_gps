@@ -1,4 +1,3 @@
-//ALPHA GPS
 //WiFi libs
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal

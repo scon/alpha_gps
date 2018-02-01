@@ -127,13 +127,13 @@ void Verbindungstest(){
   }
 }
 String Messung(String Postionsstring){
-  float SN1_value, SN2_value, SN3_value, Temp_value;
+
   float SN1_Integral = 0;
   float SN2_Integral = 0;
   float SN3_Integral = 0;
   float TEMP_Integral = 0;
 
-  float SN1_AE_value,SN2_AE_value,SN3_AE_value;
+
   float SN1_AE_Integral = 0;
   float SN2_AE_Integral = 0;
   float SN3_AE_Integral = 0;
@@ -224,8 +224,12 @@ void Upload(String Uploadstring){
 }
 
 void updateDisplay(){
+display.clearDisplay();
+display.setCursor(0,0);
 counter = counter + 1;
-Serial.println("Running..."+ String(counter));
+display.println("Running... "+ String(counter));
+display.println("NO2: "+ String(SN1_value));
+
 display.display();
 }
 void setup() {
@@ -256,7 +260,7 @@ void setup() {
   display.display();
   delay(1000);
 
-  // WiFiStart();
+  WiFiStart();
 
   //if you get here you have connected to the WiFi
 

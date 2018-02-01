@@ -49,6 +49,8 @@ const int Messwerte_Mittel = 10; // Anzahl der Messungen, die zu einem einzelnen
 const int MessDelay = MessInterval / Messwerte_Mittel; /* Pause zwischen Messungen, die zu einem Messwert gemittelt werden -> alle "MessDelay" ms ein Messwert,
 bis Messwerte_Mittel mal gemessen wurde, dann wird ein Mittelwert gebildet und ausgegeben. */
 unsigned long time;
+unsigned long counter = 0;
+
 int WarmUp = 10000;
 
 // Sensor Config
@@ -222,35 +224,52 @@ void Upload(String Uploadstring){
 }
 
 void updateDisplay(){
-
+counter = counter + 1;
+Serial.println("Running..."+ String(counter));
+display.display();
 }
 void setup() {
   Serial.begin(9600);
+  Serial.println("Setup");
+
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.clearDisplay();
+
+  display.println("Boot...");
+  display.display();
+  delay(1000);
   // Startet Kommunikation mit IDC über Port 4 und 5 auf ESP8266 und setzt Gain des ADCs
   ads_A.setGain(GAIN_TWO);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
   ads_B.setGain(GAIN_TWO);
   ads_A.begin();
   ads_B.begin();
 
-//tft.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
-//
-//  tft.setTextSize(1);
-//  tft.setTextColor(WHITE);
-//  tft.setCursor(0,0);
+  display.println("Start ADCs...");
+  display.display();
+  delay(1000);
 
 
+  display.println("Start Wifimanager...");
+  display.display();
+  delay(1000);
 
-  WiFiStart();
+  // WiFiStart();
 
   //if you get here you have connected to the WiFi
 
-
-  display.println("Wifi Verbindung hergestellt");
-
+  display.println("Connected to Wifi");
   display.print("IP:"); display.println(WiFi.localIP());
+  display.display();
   delay(1000);
-  display.print("Searching satellites");
 
+  display.print("Start Loop()");
+  display.display();
+  delay(1000);
+  display.clearDisplay();
+  display.display();
   time = millis();
 }
 

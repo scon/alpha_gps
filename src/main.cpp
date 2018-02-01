@@ -56,6 +56,7 @@ int WarmUp = 10000;
 const char* SN1 = "NO2_WE";
 const char* SN2 = "O3_WE";
 const char* SN3 = "NO_WE";
+const char* TEMP = "PT1000";
 const char* SN1_AE = "NO2_AE";
 const char* SN2_AE = "O3_AE";
 const char* SN3_AE = "NO_AE";
@@ -73,8 +74,8 @@ String latitude, longitude, Geohash, Position,last_lat, last_lng;
 // Initialisiert WiFiClient als "client"
 WiFiClient client;
 // Initialisiert I2C ADS1115 als "ads"; PORTS am ESP8266: SDA = D2, SCL = D1
-Adafruit_ADS1115 ads(0x48);
-Adafruit_ADS1115 ads1015(0x4A);
+Adafruit_ADS1115 ads_A(0x48);
+Adafruit_ADS1115 ads_B(0x49);
 
 // Umrechnung der 16Bit Werte des ADS1115 mit dem entsprechenden GAIN abhängigen Faktor
 float Umrechnungsfaktor;
@@ -84,23 +85,10 @@ String Daten, serverResponse;
 char incomingChar; // Dummy variable um Serverresponse zu lesen, aufs Display auszugeben und ggf. auf Serial auszugeben.
 int  gpsIsUpdated=0, gpsIsValid=0, gpsIfTriggered=0, gpsAge=0, gpsSpeed=0; // Debugvariablen fuer das GPS
 
-float adc0, adc1, adc2, adc3;                 // globale ADC Variablen
-float adc0_AE, adc1_AE, adc2_AE, adc3_AE;     // fuer Ausgabe am Display
+float SN1_value, SN2_value, SN3_value, Temp_value;      // globale ADC Variablen
+float SN1_AE_value,SN2_AE_value,SN3_AE_value;           // fuer Ausgabe am Display
 
-// String getGPS(){
-//   gps.encode(Serial.read());
-//     if(gps.location.isUpdated()){
-//       Geohash = hasher.encode(gps.location.lat(), gps.location.lng());
-//       const char* geohash = hasher.encode(gps.location.lat(), gps.location.lng());
-//       Serial.println(geohash);
-//       latitude = String(gps.location.lat(),6);
-//       longitude = String(gps.location.lng(),6);
-//       String GPSString = "geohash=" + String(geohash)+" lat=" + latitude + ",lng=" + longitude;
-//       Serial.println(GPSString);
-//       tft.println(GPSString);
-//       return GPSString;
-//     }
-//   }
+
 
 void color(String color){  // fuer schnellen Farbwechsel
   if (color == "white") tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
@@ -114,20 +102,21 @@ void linefeed(){tft.println("                       ");} // eine Leerzeile auf d
 
 float getUmrechnungsfaktor(){
   float Faktor;
-  if(ads.getGain()==GAIN_TWOTHIRDS){
+  if(ads_A.getGain()==GAIN_TWOTHIRDS){
     Faktor = 0.1875;
   }
-  if(ads.getGain()==GAIN_ONE){
+  if(ads_A.getGain()==GAIN_ONE){
     Faktor = 0.125;
   }
-  if(ads.getGain()==GAIN_TWO){
+  if(ads_A.getGain()==GAIN_TWO){
     Faktor = 0.0625;
   }
-  if(ads.getGain()==GAIN_FOUR){
+  if(ads_A.getGain()==GAIN_FOUR){
     Faktor = 0.03125;
   }
   return Faktor;
 }
+
 void WiFiStart(){
   /* Baut Verbindung mit dem letzten bekannten WiFi auf, wenn nicht vorhanden
   wird eigener AP erstellt -> IP: 192.168.4.1*/
@@ -149,12 +138,13 @@ void Verbindungstest(){
   }
 }
 String Messung(String Postionsstring){
+  float SN1_value, SN2_value, SN3_value, Temp_value;
   float SN1_Integral = 0;
   float SN2_Integral = 0;
   float SN3_Integral = 0;
   float TEMP_Integral = 0;
 
-
+  float SN1_AE_value,SN2_AE_value,SN3_AE_value;
   float SN1_AE_Integral = 0;
   float SN2_AE_Integral = 0;
   float SN3_AE_Integral = 0;
@@ -162,13 +152,20 @@ String Messung(String Postionsstring){
   //Messung über i = Messwerte_Mittel Messwerte
   for (int i = 0; i < Messwerte_Mittel; i++) {
     // Abrufen der Analogeinganswerte am ADS1115
-    SN1_Integral+=ads.readADC_SingleEnded(0); // Abrufen der an den Pins anliegenden Werte &
-    SN2_Integral+=ads.readADC_SingleEnded(1); // Integration über Anzahl der zu mittelnden Messwerte
-    SN3_Integral+=ads.readADC_SingleEnded(2);
-    TEMP_Integral+=ads.readADC_SingleEnded(3);
-    SN1_AE_Integral+=ads1015.readADC_SingleEnded(0); // Abrufen der an den Pins anliegenden Werte &
-    SN2_AE_Integral+=ads1015.readADC_SingleEnded(1); // Integration über Anzahl der zu mittelnden Messwerte
-    SN3_AE_Integral+=ads1015.readADC_SingleEnded(2);
+    // Abrufen der an den Pins anliegenden Werte &
+    //Integration über Anzahl der zu mittelnden Messwerte
+
+    //ADC_A
+    SN1_AE_Integral+=ads_A.readADC_SingleEnded(1);  // NO2   Aux 1
+    SN2_AE_Integral+=ads_A.readADC_SingleEnded(2);  // O3/NO Aux 2
+    SN3_AE_Integral+=ads_A.readADC_SingleEnded(3); // NO    Aux 3
+    TEMP_Integral+=ads_A.readADC_SingleEnded(0);  // PT+
+
+    //ADC_B
+    SN1_Integral+=ads_B.readADC_SingleEnded(1); // NO2   Work 1
+    SN2_Integral+=ads_B.readADC_SingleEnded(2); // O3/NO Work 2
+    SN3_Integral+=ads_B.readADC_SingleEnded(3); // NO    Work 3
+
     delay(15);
   }
 
@@ -182,17 +179,25 @@ String Messung(String Postionsstring){
 
   Umrechnungsfaktor = getUmrechnungsfaktor();
 
-  adc0 = Umrechnungsfaktor * SN1_Integral;
-  adc1 = Umrechnungsfaktor * SN2_Integral;
-  adc2 = Umrechnungsfaktor * SN3_Integral;
-  adc3 = Umrechnungsfaktor * TEMP_Integral;
-  adc0_AE = Umrechnungsfaktor * SN1_AE_Integral;
-  adc1_AE = Umrechnungsfaktor * SN2_AE_Integral;
-  adc2_AE = Umrechnungsfaktor * SN3_AE_Integral;
+  SN1_value = Umrechnungsfaktor * SN1_Integral;
+  SN2_value = Umrechnungsfaktor * SN2_Integral;
+  SN3_value = Umrechnungsfaktor * SN3_Integral;
+  Temp_value = Umrechnungsfaktor * TEMP_Integral;
+
+  SN1_AE_value = Umrechnungsfaktor * SN1_AE_Integral;
+  SN2_AE_value = Umrechnungsfaktor * SN2_AE_Integral;
+  SN3_AE_value = Umrechnungsfaktor * SN3_AE_Integral;
 
   // Messwerte in String zusammenbauen
-  String content = String(MEASUREMENT_NAME) + ",host=esp8266,"+ Postionsstring + "," + String(SN1)
-  + "=" + String(adc0, 4) + "," + SN2 + "=" + String(adc1, 4) + "," + SN3 + "=" + String(adc2,4) + ",TEMP=" + String(adc3, 4) + "," + SN1_AE + "=" + String(adc0_AE, 4) + "," + SN2_AE + "=" + String(adc1_AE, 4) + "," + SN3_AE + "=" + String(adc2_AE, 4);
+  String content = String(MEASUREMENT_NAME) + ",host=esp8266,"+ Postionsstring + "," +
+   SN1 +    "=" + String(SN1_value , 4) + "," +
+   SN2 +    "=" + String(SN2_value, 4) + "," +
+   SN3 +    "=" + String(SN3_value,4) + "," +
+   TEMP +   "=" + String(Temp_value, 4) + "," +
+   SN1_AE + "=" + String(SN1_AE_value, 4) + "," +
+   SN2_AE + "=" + String(SN2_AE_value, 4) + "," +
+   SN3_AE + "=" + String(SN3_AE_value, 4);
+
   return content;
 }
 void Upload(String Uploadstring){
@@ -292,10 +297,10 @@ void updateDisplay(){
 void setup() {
   Serial.begin(9600);
   // Startet Kommunikation mit IDC über Port 4 und 5 auf ESP8266 und setzt Gain des ADCs
-  ads.setGain(GAIN_TWO);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
-  ads1015.setGain(GAIN_TWO);
-  ads.begin();
-  ads1015.begin();
+  ads_A.setGain(GAIN_TWO);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
+  ads_B.setGain(GAIN_TWO);
+  ads_A.begin();
+  ads_B.begin();
 
 //tft.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
 //

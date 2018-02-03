@@ -23,7 +23,7 @@ GeoHash hasher_normal(8);
 GeoHash hasher_fine(9);
 
 // Wifi Config
-char MEASUREMENT_NAME[34] = "alphasense1";
+char MEASUREMENT_NAME[34] = "alphasense2";
 const char* AutoConnectAPName = "AutoConnectAP";
 const char* AutoConnectAPPW = "password";
 
@@ -180,7 +180,7 @@ String Messung(String Positionsstring){
   SN3_AE_value = Umrechnungsfaktor * SN3_AE_Integral;
 
   // Messwerte in String zusammenbauen
-  String content = String(MEASUREMENT_NAME) + ",host=esp8266 "+ Positionsstring + "," +
+  String content = String(MEASUREMENT_NAME) + ",host=esp8266 "+ "Pos=HDE37JFD" + "," +
    SN1 +    "=" + String(SN1_value , 4) + "," +
    SN2 +    "=" + String(SN2_value, 4) + "," +
    SN3 +    "=" + String(SN3_value,4) + "," +

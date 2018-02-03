@@ -30,16 +30,6 @@ const char* AutoConnectAPPW = "password";
 // Display libs
 #include <Adafruit_GFX.h>
 
-// Mit TFT
-//#include "SPI.h"
-//#include "Adafruit_ILI9341.h"
-//#define TFT_DC 2
-//#define TFT_CS 16
-//Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC); //, TFT_MOSI, TFT_CLK);
-
-// If using the breakout, change pins as desired
-//Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
-
 // Mit OLED
 #include <Adafruit_SSD1306.h>
 #define OLED_RESET 4
@@ -56,10 +46,10 @@ unsigned long counter = 0;
 int WarmUp = 10000;
 
 // Sensor Config
-const char* SN1 = "NO2_WE";
-const char* SN2 = "O3_WE";
-const char* SN3 = "NO_WE";
-const char* TEMP = "PT1000";
+const char* SN1    = "NO2_WE";
+const char* SN2    = "O3_WE";
+const char* SN3    = "NO_WE";
+const char* TEMP   = "PT1000";
 const char* SN1_AE = "NO2_AE";
 const char* SN2_AE = "O3_AE";
 const char* SN3_AE = "NO_AE";
@@ -73,9 +63,10 @@ int conState = 0;
 //GPS Variablen
 String latitude, longitude, Geohash_fine, Geohash_normal, Geohash_coarse, Position,last_lat, last_lng;
 
-
+String connectionIndicator="-", gpsIndicator="+";
 // Initialisiert WiFiClient als "client"
 WiFiClient client;
+
 // Initialisiert I2C ADS1115 als "ads"; PORTS am ESP8266: SDA = D2, SCL = D1
 Adafruit_ADS1115 ads_A(0x48);
 Adafruit_ADS1115 ads_B(0x49);
@@ -83,10 +74,10 @@ Adafruit_ADS1115 ads_B(0x49);
 // Umrechnung der 16Bit Werte des ADS1115 mit dem entsprechenden GAIN abhängigen Faktor
 float Umrechnungsfaktor;
 
-String Daten, serverResponse;
+String Uploadstring, serverResponse;
 
 char incomingChar; // Dummy variable um Serverresponse zu lesen, aufs Display auszugeben und ggf. auf Serial auszugeben.
-int  gpsIsUpdated=0, gpsIsValid=0, gpsIfTriggered=0, gpsAge=0, gpsSpeed=0; // Debugvariablen fuer das GPS
+int  gpsIsUpdated=0, gpsIsValid=0, gpsIfTriggered=0, gpsAge=20000, gpsSpeed=0, gpsHour=0, gpsMinute=0; // Debugvariablen fuer das GPS
 
 float SN1_value, SN2_value, SN3_value, Temp_value;      // globale ADC Variablen
 float SN1_AE_value,SN2_AE_value,SN3_AE_value;           // fuer Ausgabe am Display
@@ -128,13 +119,12 @@ void Verbindungstest(){
     Serial.println(conState);
   }
 }
-String Messung(String Positionsstring){
+void Messung(){
 
   float SN1_Integral = 0;
   float SN2_Integral = 0;
   float SN3_Integral = 0;
   float TEMP_Integral = 0;
-
 
   float SN1_AE_Integral = 0;
   float SN2_AE_Integral = 0;
@@ -149,8 +139,8 @@ String Messung(String Positionsstring){
     //ADC_A
     SN1_AE_Integral+=ads_A.readADC_SingleEnded(1);  // NO2   Aux 1
     SN2_AE_Integral+=ads_A.readADC_SingleEnded(2);  // O3/NO Aux 2
-    SN3_AE_Integral+=ads_A.readADC_SingleEnded(3); // NO    Aux 3
-    TEMP_Integral+=ads_A.readADC_SingleEnded(0);  // PT+
+    SN3_AE_Integral+=ads_A.readADC_SingleEnded(3);  // NO    Aux 3
+    TEMP_Integral  +=ads_A.readADC_SingleEnded(0);  // PT+
 
     //ADC_B
     SN1_Integral+=ads_B.readADC_SingleEnded(1); // NO2   Work 1
@@ -160,41 +150,30 @@ String Messung(String Positionsstring){
     delay(15);
   }
 
-  SN1_Integral = SN1_Integral / Messwerte_Mittel; // Bildung des arithmetischen Mittels
-  SN2_Integral = SN2_Integral / Messwerte_Mittel;
-  SN3_Integral = SN3_Integral / Messwerte_Mittel;
-  TEMP_Integral = TEMP_Integral / Messwerte_Mittel;
-  SN1_AE_Integral = SN1_AE_Integral / Messwerte_Mittel; // Bildung des arithmetischen Mittels
-  SN2_AE_Integral = SN2_AE_Integral / Messwerte_Mittel;
-  SN3_AE_Integral = SN3_AE_Integral / Messwerte_Mittel;
+   SN1_Integral = SN1_Integral / Messwerte_Mittel; // Bildung des arithmetischen Mittels
+   SN2_Integral = SN2_Integral / Messwerte_Mittel;
+   SN3_Integral = SN3_Integral / Messwerte_Mittel;
+   TEMP_Integral = TEMP_Integral / Messwerte_Mittel;
+   SN1_AE_Integral = SN1_AE_Integral / Messwerte_Mittel; // Bildung des arithmetischen Mittels
+   SN2_AE_Integral = SN2_AE_Integral / Messwerte_Mittel;
+   SN3_AE_Integral = SN3_AE_Integral / Messwerte_Mittel;
 
-  Umrechnungsfaktor = getUmrechnungsfaktor();
+   Umrechnungsfaktor = getUmrechnungsfaktor();
 
-  SN1_value = Umrechnungsfaktor * SN1_Integral;
-  SN2_value = Umrechnungsfaktor * SN2_Integral;
-  SN3_value = Umrechnungsfaktor * SN3_Integral;
-  Temp_value = Umrechnungsfaktor * TEMP_Integral;
+   SN1_value = Umrechnungsfaktor * SN1_Integral;
+   SN2_value = Umrechnungsfaktor * SN2_Integral;
+   SN3_value = Umrechnungsfaktor * SN3_Integral;
+   Temp_value = Umrechnungsfaktor * TEMP_Integral;
 
-  SN1_AE_value = Umrechnungsfaktor * SN1_AE_Integral;
-  SN2_AE_value = Umrechnungsfaktor * SN2_AE_Integral;
-  SN3_AE_value = Umrechnungsfaktor * SN3_AE_Integral;
-
-  // Messwerte in String zusammenbauen
-  String content = String(MEASUREMENT_NAME) + ",host=esp8266 "+ Positionsstring + "," +
-   SN1 +    "=" + String(SN1_value , 4) + "," +
-   SN2 +    "=" + String(SN2_value, 4) + "," +
-   SN3 +    "=" + String(SN3_value,4) + "," +
-   TEMP +   "=" + String(Temp_value, 4) + "," +
-   SN1_AE + "=" + String(SN1_AE_value, 4) + "," +
-   SN2_AE + "=" + String(SN2_AE_value, 4) + "," +
-   SN3_AE + "=" + String(SN3_AE_value, 4);
-
-  return content;
+   SN1_AE_value = Umrechnungsfaktor * SN1_AE_Integral;
+   SN2_AE_value = Umrechnungsfaktor * SN2_AE_Integral;
+   SN3_AE_value = Umrechnungsfaktor * SN3_AE_Integral;
 }
-void Upload(String Uploadstring){
+
+void Upload(String Daten){
   // Print the buffer on the serial line to see how it looks
   Serial.print("Sending following dataset to InfluxDB: ");
-  Serial.println(Uploadstring);
+  Serial.println(Daten);
 
   //send to InfluxDB
   // Verbindungstest mit dem InfluxDB Server connect() liefert bool false / true als return
@@ -209,7 +188,7 @@ void Upload(String Uploadstring){
     client.print("Content-Length: " + String(Uploadstring.length()) + "\r\n");
     client.println("Content-Type: application/x-www-form-urlencoded");
     client.println(); /*HTTP Header und Body müssen durch Leerzeile getrennt werden*/
-    client.println(Uploadstring); // Übermittlung des eigentlichen Data-Strings
+    client.println(Daten); // Übermittlung des eigentlichen Data-Strings
     client.flush(); //
     delay(1000); //wait for server to process data
 
@@ -227,24 +206,97 @@ void Upload(String Uploadstring){
 }
 
 void updateDisplay(){
+
+if (gpsAge < 10000){
+  gpsIndicator = "+";
+}
+else{
+  gpsIndicator = "-";
+}
+
+if (conState = 1){
+  connectionIndicator = "+";
+}
+else{
+  connectionIndicator = "-";
+}
+
 display.clearDisplay();
 display.setCursor(0,0);
-display.print("C:"+ String(conState));
+display.print("C:"+ connectionIndicator);
 display.setCursor(20,0);
-display.print("G:"+ String(gpsIsUpdated));
+display.println("G:"+ gpsIndicator);
 
-counter = counter + 1;
-display.println("Running... "+ String(counter));
 display.println("NO2: "+ String(SN1_value));
 display.println("Speed: "+ String(gpsSpeed));
 
 display.display();
 }
+
+void checkGPS(){
+  gpsIfTriggered = 0;
+  while (Serial.available()){
+    gps.encode(Serial.read());
+    // gpsIsUpdated   = gps.location.isUpdated();
+    // gpsIsValid     = gps.location.isValid();
+    gpsAge         = gps.location.age();
+
+    if (gps.location.isValid()){
+
+      gpsIfTriggered = 1;
+      latitude  = String(gps.location.lat(),6);
+      longitude = String(gps.location.lng(),6);
+      gpsSpeed  = gps.speed.kmph();
+      gpsHour   = gps.time.hour();
+      gpsMinute = gps.time.minute();
+       if ((longitude != last_lng) or (latitude != last_lat)){
+         gpsIsUpdated = 1;
+       }
+
+      last_lat = latitude;
+      last_lng = longitude;
+
+      Geohash_fine = hasher_fine.encode(gps.location.lat(), gps.location.lng());
+      Geohash_normal = hasher_normal.encode(gps.location.lat(), gps.location.lng());
+      Geohash_coarse = hasher_coarse.encode(gps.location.lat(), gps.location.lng());
+    }
+  }
+
+}
+
+void generateUploadString(){
+  // Messwerte in String zusammenbauen
+  Uploadstring =
+  String(MEASUREMENT_NAME) + "," +
+
+  //Tags
+  "host=esp8266" + "," +
+  "hour=" + String(gpsHour) + "," +
+  "minute" + String(gpsMinute) +
+   " " + // Leerzeichen trennt Tags und Fields
+
+  //Messwerte
+  SN1 +    "=" + String(SN1_value , 4) + "," +
+  SN2 +    "=" + String(SN2_value, 4) + "," +
+  SN3 +    "=" + String(SN3_value,4) + "," +
+  TEMP +   "=" + String(Temp_value, 4) + "," +
+  SN1_AE + "=" + String(SN1_AE_value, 4) + "," +
+  SN2_AE + "=" + String(SN2_AE_value, 4) + "," +
+  SN3_AE + "=" + String(SN3_AE_value, 4) + "," +
+
+  //Position
+  "geohash_fine=\""   + Geohash_fine   + "\"," +
+  "geohash_normal=\"" + Geohash_normal + "\"," +
+  "geohash_coarse=\"" + Geohash_coarse + "\"," +
+  "lat=" + latitude + "," +
+  "lng=" + longitude;
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.println("Setup");
 
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x64)
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0,0);
@@ -253,7 +305,6 @@ void setup() {
   display.println("Boot...");
   display.display();
   delay(1000);
-
 
   // Startet Kommunikation mit IDC über Port 4 und 5 auf ESP8266 und setzt Gain des ADCs
   ads_A.setGain(GAIN_TWO);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
@@ -264,7 +315,6 @@ void setup() {
   display.println("Start ADCs...");
   display.display();
   delay(1000);
-
 
   display.println("Start Wifimanager...");
   display.display();
@@ -288,50 +338,13 @@ void setup() {
 }
 
 void loop() {
+Messung();
+checkGPS();
 
-  gpsIfTriggered = 0;
-  while (Serial.available()){
-    gps.encode(Serial.read());
-    // gpsIsUpdated   = gps.location.isUpdated();
-    // gpsIsValid     = gps.location.isValid();
-    gpsAge         = gps.location.age();
-
-    if (gps.location.isValid()){
-
-      gpsIfTriggered = 1;
-      latitude = String(gps.location.lat(),6);
-      longitude = String(gps.location.lng(),6);
-      gpsSpeed = gps.speed.kmph();
-
-       if ((longitude != last_lng) or (latitude != last_lat)){
-         gpsIsUpdated = 1;
-       }
-       else{
-         gpsIsUpdated = 0;
-       }
-
-
-
-      last_lat = latitude;
-      last_lng = longitude;
-
-      Geohash_fine = hasher_fine.encode(gps.location.lat(), gps.location.lng());
-      Geohash_normal = hasher_normal.encode(gps.location.lat(), gps.location.lng());
-      Geohash_coarse = hasher_coarse.encode(gps.location.lat(), gps.location.lng());
-
-
-      Position =
-      "geohash_fine=\"" + Geohash_fine   + "\"," +
-      "geohash_normal=\"" + Geohash_normal + "\"," +
-      "geohash_coarse=\"" + Geohash_coarse + "\"," +
-      "lat=" + latitude + "," +
-      "lng=" + longitude;
-    }
-  }
-
-  // tft.println(Position);
-  Daten = Messung(Position);
-  //tft.println(Daten);
-  Upload(Daten);
-  updateDisplay();
+if (gpsIsUpdated == 1){
+generateUploadString();
+Upload(Uploadstring);
+gpsIsUpdated = 0;
+}
+updateDisplay();
 }

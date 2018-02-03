@@ -272,7 +272,7 @@ void generateUploadString(){
   //Tags
   "host=esp8266" + "," +
   "hour=" + String(gpsHour) + "," +
-  "minute" + String(gpsMinute) +
+  "minute=" + String(gpsMinute) +
    " " + // Leerzeichen trennt Tags und Fields
 
   //Messwerte

@@ -180,7 +180,7 @@ String Messung(String Positionsstring){
   SN3_AE_value = Umrechnungsfaktor * SN3_AE_Integral;
 
   // Messwerte in String zusammenbauen
-  String content = String(MEASUREMENT_NAME) + ",host=esp8266 "+ "Pos=HDE37JFD" + "," +
+  String content = String(MEASUREMENT_NAME) + ",host=esp8266 "+ Positionsstring + "," +
    SN1 +    "=" + String(SN1_value , 4) + "," +
    SN2 +    "=" + String(SN2_value, 4) + "," +
    SN3 +    "=" + String(SN3_value,4) + "," +
@@ -211,7 +211,7 @@ void Upload(String Uploadstring){
     client.println(); /*HTTP Header und Body müssen durch Leerzeile getrennt werden*/
     client.println(Uploadstring); // Übermittlung des eigentlichen Data-Strings
     client.flush(); //
-    delay(100); //wait for server to process data
+    delay(1000); //wait for server to process data
 
     // Antwort des Servers wird gelesen, ausgegeben und anschließend die Verbindung geschlossen
     Serial.println("Antwort des Servers");
@@ -320,9 +320,10 @@ void loop() {
       Geohash_coarse = hasher_coarse.encode(gps.location.lat(), gps.location.lng());
 
 
-      Position = "geohash_fine="+ Geohash_fine + "," +
-      "geohash_normal="+ Geohash_normal + "," +
-      "geohash_coarse="+ Geohash_coarse + "," +
+      Position =
+      "geohash_fine=\"" + Geohash_fine   + "\"," +
+      "geohash_normal=\"" + Geohash_normal + "\"," +
+      "geohash_coarse=\"" + Geohash_coarse + "\"," +
       "lat=" + latitude + "," +
       "lng=" + longitude;
     }

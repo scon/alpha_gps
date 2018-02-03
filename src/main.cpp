@@ -23,7 +23,7 @@ GeoHash hasher_normal(8);
 GeoHash hasher_fine(9);
 
 // Wifi Config
-char MEASUREMENT_NAME[34] = "alphasense";
+char MEASUREMENT_NAME[34] = "alphasense1";
 const char* AutoConnectAPName = "AutoConnectAP";
 const char* AutoConnectAPPW = "password";
 
@@ -128,7 +128,7 @@ void Verbindungstest(){
     Serial.println(conState);
   }
 }
-String Messung(String Postionsstring){
+String Messung(String Positionsstring){
 
   float SN1_Integral = 0;
   float SN2_Integral = 0;
@@ -180,7 +180,7 @@ String Messung(String Postionsstring){
   SN3_AE_value = Umrechnungsfaktor * SN3_AE_Integral;
 
   // Messwerte in String zusammenbauen
-  String content = String(MEASUREMENT_NAME) + ",host=esp8266,"+ Postionsstring + "," +
+  String content = String(MEASUREMENT_NAME) + ",host=esp8266 "+ Positionsstring + "," +
    SN1 +    "=" + String(SN1_value , 4) + "," +
    SN2 +    "=" + String(SN2_value, 4) + "," +
    SN3 +    "=" + String(SN3_value,4) + "," +
@@ -220,6 +220,7 @@ void Upload(String Uploadstring){
       incomingChar=char(client.read());
       serverResponse += incomingChar;
     }
+    Serial.println(serverResponse);
   }
   Serial.println();
   client.stop();
@@ -228,9 +229,14 @@ void Upload(String Uploadstring){
 void updateDisplay(){
 display.clearDisplay();
 display.setCursor(0,0);
+display.print("C:"+ String(conState));
+display.setCursor(20,0);
+display.print("G:"+ String(gpsIsUpdated));
+
 counter = counter + 1;
 display.println("Running... "+ String(counter));
 display.println("NO2: "+ String(SN1_value));
+display.println("Speed: "+ String(gpsSpeed));
 
 display.display();
 }
@@ -238,7 +244,7 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Setup");
 
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x64)
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0,0);
@@ -247,6 +253,8 @@ void setup() {
   display.println("Boot...");
   display.display();
   delay(1000);
+
+
   // Startet Kommunikation mit IDC über Port 4 und 5 auf ESP8266 und setzt Gain des ADCs
   ads_A.setGain(GAIN_TWO);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
   ads_B.setGain(GAIN_TWO);
@@ -285,7 +293,7 @@ void loop() {
   while (Serial.available()){
     gps.encode(Serial.read());
     // gpsIsUpdated   = gps.location.isUpdated();
-    gpsIsValid     = gps.location.isValid();
+    // gpsIsValid     = gps.location.isValid();
     gpsAge         = gps.location.age();
 
     if (gps.location.isValid()){
@@ -293,6 +301,7 @@ void loop() {
       gpsIfTriggered = 1;
       latitude = String(gps.location.lat(),6);
       longitude = String(gps.location.lng(),6);
+      gpsSpeed = gps.speed.kmph();
 
        if ((longitude != last_lng) or (latitude != last_lat)){
          gpsIsUpdated = 1;
@@ -300,15 +309,22 @@ void loop() {
        else{
          gpsIsUpdated = 0;
        }
+
+
+
       last_lat = latitude;
       last_lng = longitude;
 
       Geohash_fine = hasher_fine.encode(gps.location.lat(), gps.location.lng());
-      Geohash_normal = hasher_fine.encode(gps.location.lat(), gps.location.lng());
+      Geohash_normal = hasher_normal.encode(gps.location.lat(), gps.location.lng());
       Geohash_coarse = hasher_coarse.encode(gps.location.lat(), gps.location.lng());
 
 
-      Position = "geohash_fine="+ Geohash_fine + "geohash_normal="+ Geohash_normal + "Geohash_coarse="+ Geohash_coarse + " lat=" + latitude + ",lng=" + longitude;
+      Position = "geohash_fine="+ Geohash_fine + "," +
+      "geohash_normal="+ Geohash_normal + "," +
+      "geohash_coarse="+ Geohash_coarse + "," +
+      "lat=" + latitude + "," +
+      "lng=" + longitude;
     }
   }
 

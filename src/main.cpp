@@ -272,7 +272,10 @@ void generateUploadString(){
   //Tags
   "host=esp8266" + "," +
   "hour=" + String(gpsHour) + "," +
-  "minute=" + String(gpsMinute) +
+  "minute=" + String(gpsMinute) + "," +
+  "geohash_fine="   + Geohash_fine   + "," +
+  "geohash=" + Geohash_normal + "," +
+  "geohash_coarse=" + Geohash_coarse +
    " " + // Leerzeichen trennt Tags und Fields
 
   //Messwerte
@@ -284,12 +287,10 @@ void generateUploadString(){
   SN2_AE + "=" + String(SN2_AE_value, 4) + "," +
   SN3_AE + "=" + String(SN3_AE_value, 4) + "," +
 
-  //Position
-  "geohash_fine=\""   + Geohash_fine   + "\"," +
-  "geohash_normal=\"" + Geohash_normal + "\"," +
-  "geohash_coarse=\"" + Geohash_coarse + "\"," +
+  //Position & Speed
+  "lng=" + longitude + "," +
   "lat=" + latitude + "," +
-  "lng=" + longitude;
+  "speed=" + gpsSpeed;
 }
 
 void setup() {

@@ -23,7 +23,6 @@ GeoHash hasher_normal(8);
 GeoHash hasher_fine(9);
 
 // Wifi Config
-char MEASUREMENT_NAME[34] = "alphasense2";
 const char* AutoConnectAPName = "AutoConnectAP";
 const char* AutoConnectAPPW = "password";
 
@@ -57,13 +56,14 @@ const char* SN3_AE = "NO_AE";
 // Server Config
 const char* InfluxDB_Server_IP = "130.149.67.141";
 const int InfluxDB_Server_Port = 8086;
-const char* InfluxDB_Database = "MESSCONTAINER";
+const char* InfluxDB_Database = "ALPHASENSE";
+char MEASUREMENT_NAME[34] = "alphasense_mobil_1" ; //(+ Sensornummer)
 
 int conState = 0;
 //GPS Variablen
 String latitude, longitude, Geohash_fine, Geohash_normal, Geohash_coarse, Position,last_lat, last_lng;
 
-String connectionIndicator="-", gpsIndicator="+";
+String connectionIndicator="-", gpsIndicator="-";
 // Initialisiert WiFiClient als "client"
 WiFiClient client;
 
@@ -256,7 +256,7 @@ void checkGPS(){
       last_lat = latitude;
       last_lng = longitude;
 
-      Geohash_fine = hasher_fine.encode(gps.location.lat(), gps.location.lng());
+      Geohash_fine   = hasher_fine.encode(gps.location.lat(), gps.location.lng());
       Geohash_normal = hasher_normal.encode(gps.location.lat(), gps.location.lng());
       Geohash_coarse = hasher_coarse.encode(gps.location.lat(), gps.location.lng());
     }
@@ -270,11 +270,12 @@ void generateUploadString(){
   String(MEASUREMENT_NAME) + "," +
 
   //Tags
-  "host=esp8266" + "," +
+  "host=alphasense_mobil_1" + "," +
   "hour=" + String(gpsHour) + "," +
   "minute=" + String(gpsMinute) + "," +
+  "geohash="        + Geohash_normal + "," +
   "geohash_fine="   + Geohash_fine   + "," +
-  "geohash=" + Geohash_normal + "," +
+  "geohash_normal=" + Geohash_normal + "," +
   "geohash_coarse=" + Geohash_coarse +
    " " + // Leerzeichen trennt Tags und Fields
 

@@ -36,10 +36,11 @@ Adafruit_SSD1306 display(LED_BUILTIN);
 
 // Config Messung
 const int MessInterval = 2000; // Zeit in ms zwischen den einzelnen gemittelten Messwerten
-const int Messwerte_Mittel = 10; // Anzahl der Messungen, die zu einem einzelnen Messwert gemittelt werden
+const int Messwerte_Mittel = 30; // Anzahl der Messungen, die zu einem einzelnen Messwert gemittelt werden
 const int MessDelay = MessInterval / Messwerte_Mittel; /* Pause zwischen Messungen, die zu einem Messwert gemittelt werden -> alle "MessDelay" ms ein Messwert,
 bis Messwerte_Mittel mal gemessen wurde, dann wird ein Mittelwert gebildet und ausgegeben. */
 unsigned long time;
+unsigned long millis_time;
 unsigned long counter = 0;
 
 int WarmUp = 10000;
@@ -130,6 +131,7 @@ void Messung(){
   float SN2_AE_Integral = 0;
   float SN3_AE_Integral = 0;
 
+  millis_time = millis();
   //Messung über i = Messwerte_Mittel Messwerte
   for (int i = 0; i < Messwerte_Mittel; i++) {
     // Abrufen der Analogeinganswerte am ADS1115
@@ -147,8 +149,10 @@ void Messung(){
     SN2_Integral+=ads_B.readADC_SingleEnded(2); // O3/NO Work 2
     SN3_Integral+=ads_B.readADC_SingleEnded(3); // NO    Work 3
 
-    delay(15);
+    // delay(15);
   }
+
+   millis_time = millis() - millis_time;
 
    SN1_Integral = SN1_Integral / Messwerte_Mittel; // Bildung des arithmetischen Mittels
    SN2_Integral = SN2_Integral / Messwerte_Mittel;
@@ -181,7 +185,7 @@ void Upload(String Daten){
 
   //Sende HTTP Header und Buffer
   if (millis()-time>=WarmUp) {
-    client.println("POST /write?db=MESSCONTAINER HTTP/1.1");
+    client.println("POST /write?db=ALPHASENSE HTTP/1.1");
     client.println("User-Agent: esp8266/0.1");
     client.println("Host: localhost:8086");
     client.println("Accept: */*");
@@ -229,7 +233,7 @@ display.println("G:"+ gpsIndicator);
 
 display.println("NO2: "+ String(SN1_value));
 display.println("Speed: "+ String(gpsSpeed));
-
+display.println("ADC_Delay: "+ String(millis_time));
 display.display();
 }
 
@@ -311,6 +315,7 @@ void setup() {
   // Startet Kommunikation mit IDC über Port 4 und 5 auf ESP8266 und setzt Gain des ADCs
   ads_A.setGain(GAIN_TWO);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
   ads_B.setGain(GAIN_TWO);
+
   ads_A.begin();
   ads_B.begin();
 
